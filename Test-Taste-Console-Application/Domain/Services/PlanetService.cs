@@ -1,9 +1,14 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Linq;
+using System.Net;
 using System.Text;
+using System.Threading.Tasks;
 using Newtonsoft.Json;
 using Test_Taste_Console_Application.Constants;
+using Test_Taste_Console_Application.Domain.Data;
 using Test_Taste_Console_Application.Domain.DataTransferObjects;
 using Test_Taste_Console_Application.Domain.DataTransferObjects.JsonObjects;
 using Test_Taste_Console_Application.Domain.Objects;
@@ -16,6 +21,7 @@ namespace Test_Taste_Console_Application.Domain.Services
     public class PlanetService : IPlanetService
     {
         private readonly HttpClientService _httpClientService;
+        private IEnumerable<Planet> _cachedPlanets;
 
         public PlanetService(HttpClientService httpClientService)
         {
@@ -24,48 +30,102 @@ namespace Test_Taste_Console_Application.Domain.Services
 
         public IEnumerable<Planet> GetAllPlanets()
         {
+            if (_cachedPlanets != null)
+            {
+                return _cachedPlanets;
+            }
+
             var allPlanetsWithTheirMoons = new Collection<Planet>();
 
-            var response = _httpClientService.Client
-                .GetAsync(UriPath.GetAllPlanetsWithMoonsQueryParameters)
-                .Result;
-
-            //If the status code isn't 200-299, then the function returns an empty collection.
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                Logger.Instance.Warn($"{LoggerMessage.GetRequestFailed}{response.StatusCode}");
-                return allPlanetsWithTheirMoons;
-            }
+                var response = _httpClientService.Client
+                    .GetAsync(UriPath.GetAllPlanetsWithMoonsQueryParameters)
+                    .Result;
 
-            var content = response.Content.ReadAsStringAsync().Result;
-
-            //The JSON converter uses DTO's, that can be found in the DataTransferObjects folder, to deserialize the response content.
-            var results = JsonConvert.DeserializeObject<JsonResult<PlanetDto>>(content);
-
-            //The JSON converter can return a null object. 
-            if (results == null) return allPlanetsWithTheirMoons;
-
-            //If the planet doesn't have any moons, then it isn't added to the collection.
-            foreach (var planet in results.Bodies)
-            {
-                if(planet.Moons != null)
+                // Handle HTTP errors gracefully
+                if (!response.IsSuccessStatusCode)
                 {
-                    var newMoonsCollection = new Collection<MoonDto>();
-                    foreach (var moon in planet.Moons)
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
                     {
-                        var moonResponse = _httpClientService.Client
-                            .GetAsync(UriPath.GetMoonByIdQueryParameters + moon.URLId)
-                            .Result;
-                        var moonContent = moonResponse.Content.ReadAsStringAsync().Result;
-                        newMoonsCollection.Add(JsonConvert.DeserializeObject<MoonDto>(moonContent));
+                        Logger.Instance.Warn(
+                            $"{LoggerMessage.GetRequestFailed}{response.StatusCode}. " +
+                            "The Solar System OpenData API requires an API key (Bearer token). " +
+                            "Set the SOLAR_SYSTEM_API_KEY environment variable. Using reference planetary dataset.");
                     }
-                    planet.Moons = newMoonsCollection;
+                    else
+                    {
+                        Logger.Instance.Warn($"{LoggerMessage.GetRequestFailed}{response.StatusCode}");
+                    }
 
+                    _cachedPlanets = SolarSystemSampleData.GetSamplePlanets();
+                    return _cachedPlanets;
                 }
-                allPlanetsWithTheirMoons.Add(new Planet(planet));
-            }
 
-            return allPlanetsWithTheirMoons;
+                var content = response.Content.ReadAsStringAsync().Result;
+
+                // Deserialize planets
+                var results = JsonConvert.DeserializeObject<JsonResult<PlanetDto>>(content);
+                if (results == null || results.Bodies == null)
+                {
+                    _cachedPlanets = allPlanetsWithTheirMoons;
+                    return _cachedPlanets;
+                }
+
+                foreach (var planet in results.Bodies)
+                {
+                    if (planet.Moons != null && planet.Moons.Any())
+                    {
+                        var newMoonsCollection = new Collection<MoonDto>();
+
+                        // Fetch individual moon details asynchronously in parallel to optimize network performance
+                        var moonFetchTasks = planet.Moons.Select(async moon =>
+                        {
+                            try
+                            {
+                                var moonResponse = await _httpClientService.Client
+                                    .GetAsync(UriPath.GetMoonByIdQueryParameters + moon.URLId)
+                                    .ConfigureAwait(false);
+
+                                if (moonResponse.IsSuccessStatusCode)
+                                {
+                                    var moonContent = await moonResponse.Content.ReadAsStringAsync().ConfigureAwait(false);
+                                    return JsonConvert.DeserializeObject<MoonDto>(moonContent);
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Instance.Warn($"Failed to fetch details for moon {moon.URLId}: {ex.Message}");
+                            }
+
+                            return null;
+                        }).ToList();
+
+                        var fetchedMoons = Task.WhenAll(moonFetchTasks).Result;
+
+                        foreach (var fetchedMoon in fetchedMoons)
+                        {
+                            if (fetchedMoon != null)
+                            {
+                                newMoonsCollection.Add(fetchedMoon);
+                            }
+                        }
+
+                        planet.Moons = newMoonsCollection;
+                    }
+
+                    allPlanetsWithTheirMoons.Add(new Planet(planet));
+                }
+
+                _cachedPlanets = allPlanetsWithTheirMoons;
+                return _cachedPlanets;
+            }
+            catch (Exception ex)
+            {
+                Logger.Instance.Error($"Error querying planets from API: {ex.Message}. Falling back to reference dataset.");
+                _cachedPlanets = SolarSystemSampleData.GetSamplePlanets();
+                return _cachedPlanets;
+            }
         }
 
         private static string RemoveDiacritics(string text)
