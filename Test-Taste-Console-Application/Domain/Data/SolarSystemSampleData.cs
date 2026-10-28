@@ -61,14 +61,14 @@ namespace Test_Taste_Console_Application.Domain.Data
 
             return new Collection<Planet>
             {
-                new Planet(new PlanetDto { Id = "mercure", SemiMajorAxis = 57909050f, Moons = new Collection<MoonDto>() }),
-                new Planet(new PlanetDto { Id = "venus", SemiMajorAxis = 108208000f, Moons = new Collection<MoonDto>() }),
-                new Planet(new PlanetDto { Id = "terre", SemiMajorAxis = 149598262f, Moons = earthMoons }),
-                new Planet(new PlanetDto { Id = "mars", SemiMajorAxis = 227939200f, Moons = marsMoons }),
-                new Planet(new PlanetDto { Id = "jupiter", SemiMajorAxis = 778570000f, Moons = jupiterMoons }),
-                new Planet(new PlanetDto { Id = "saturne", SemiMajorAxis = 1433530000f, Moons = saturnMoons }),
-                new Planet(new PlanetDto { Id = "uranus", SemiMajorAxis = 2872460000f, Moons = uranusMoons }),
-                new Planet(new PlanetDto { Id = "neptune", SemiMajorAxis = 4495060000f, Moons = neptuneMoons })
+                new Planet(new PlanetDto { Id = "mercure", SemiMajorAxis = 57909050f, AvgTemp = 0f, Moons = new Collection<MoonDto>() }),
+                new Planet(new PlanetDto { Id = "venus", SemiMajorAxis = 108208000f, AvgTemp = 737f, Moons = new Collection<MoonDto>() }),
+                new Planet(new PlanetDto { Id = "terre", SemiMajorAxis = 149598262f, AvgTemp = 288f, Moons = earthMoons }),
+                new Planet(new PlanetDto { Id = "mars", SemiMajorAxis = 227939200f, AvgTemp = 210f, Moons = marsMoons }),
+                new Planet(new PlanetDto { Id = "jupiter", SemiMajorAxis = 778570000f, AvgTemp = 165f, Moons = jupiterMoons }),
+                new Planet(new PlanetDto { Id = "saturne", SemiMajorAxis = 1433530000f, AvgTemp = 134f, Moons = saturnMoons }),
+                new Planet(new PlanetDto { Id = "uranus", SemiMajorAxis = 2872460000f, AvgTemp = 76f, Moons = uranusMoons }),
+                new Planet(new PlanetDto { Id = "neptune", SemiMajorAxis = 4495060000f, AvgTemp = 55f, Moons = neptuneMoons })
             };
         }
 
