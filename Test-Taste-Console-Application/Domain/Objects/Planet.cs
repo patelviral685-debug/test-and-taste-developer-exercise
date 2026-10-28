@@ -2,6 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
+using Test_Taste_Console_Application.Domain.Data;
 using Test_Taste_Console_Application.Domain.DataTransferObjects;
 using Test_Taste_Console_Application.Utilities;
 
@@ -157,6 +158,25 @@ namespace Test_Taste_Console_Application.Domain.Objects
                 planetDistanceFromSunKm,
                 moonBondAlbedo,
                 moonThermalEmissivity);
+        }
+
+        /// <summary>
+        /// Estimates the illustrative proxy temperature (in Celsius) for the Moon using static Sun altitude data
+        /// as specified in moon-current-temperature-static-data-logic.md.
+        /// </summary>
+        public static double EstimateMoonCurrentTemperatureProxyCelsius(double albedo = 0.12, double emissivity = 0.95)
+        {
+            double sunAltitude = AngleParser.ParseDegrees(StaticAstronomicalData.Sun.Altitude);
+            return MoonTemperatureEstimator.EstimateProxyCelsiusFromSunAltitude(sunAltitude, albedo, emissivity);
+        }
+
+        /// <summary>
+        /// Estimates the illustrative proxy temperature (in Kelvin) for the Moon using static Sun altitude data
+        /// as specified in moon-current-temperature-static-data-logic.md.
+        /// </summary>
+        public static double EstimateMoonCurrentTemperatureProxyKelvin(double albedo = 0.12, double emissivity = 0.95)
+        {
+            return EstimateMoonCurrentTemperatureProxyCelsius(albedo, emissivity) + 273.15;
         }
 
         public Planet(PlanetDto planetDto)
