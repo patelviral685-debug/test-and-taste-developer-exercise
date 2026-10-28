@@ -72,7 +72,10 @@ namespace Test_Taste_Console_Application.Domain.Services
                     return _cachedPlanets;
                 }
 
-                foreach (var planet in results.Bodies)
+                // Order planets by semi-major axis (distance from the Sun)
+                var sortedBodies = results.Bodies.OrderBy(b => b.SemiMajorAxis).ToList();
+
+                foreach (var planet in sortedBodies)
                 {
                     if (planet.Moons != null && planet.Moons.Any())
                     {
