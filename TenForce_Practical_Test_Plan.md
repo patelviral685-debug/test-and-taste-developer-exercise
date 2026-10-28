@@ -1,4 +1,4 @@
-# TenForce Developer Practical Test
+﻿# TenForce Developer Practical Test
 
 ## Objective
 
@@ -132,10 +132,10 @@ return moonsWithTemp.Any() ? (float)moonsWithTemp.Average(m => m.AvgTemp.Value) 
 ### 4. How Missing or Invalid Temperature Data is Handled
 
 In the Solar System OpenData API, moons without recorded temperature data return `avgTemp: 0` or `null`.
-- In physics and astronomy, 0 Kelvin represents absolute zero (−273.15 °C), a temperature not reached by natural solar system bodies.
+- In physics and astronomy, 0 Kelvin represents absolute zero (âˆ’273.15 Â°C), a temperature not reached by natural solar system bodies.
 - Silently treating 0 as a valid value would distort the calculated average.
 - Therefore, any temperature value `null` or `<= 0` is deliberately treated as missing data (`null`).
-- If a planet has moons but none have recorded temperature data in the API, `AverageMoonTemperature` evaluates to `null` and is rendered as `"N/A"` in both console tables and CSV exports, explicitly communicating data absence.
+- The application implements a tiered fallback: 1) API positive moon temperature, 2) astronomical reference temperature for major moons, 3) host planet API AvgTemp as orbital equilibrium fallback, 4) null (rendered as 'N/A').
 
 ### 5. Why the API Client or Interface Needed to Change
 
@@ -143,6 +143,7 @@ In the Solar System OpenData API, moons without recorded temperature data return
 2. **Performance Optimization**: Because major planets (e.g., Saturn with ~290 moons, Jupiter with ~115 moons) have extensive moon counts, sequential queries resulted in excessive latency. `PlanetService` was converted to fetch moon details concurrently using asynchronous `Task.WhenAll`.
 3. **Redundant Network Calls**: The console application performs multiple output operations. In-memory caching was added to `PlanetService` and `MoonService` to fetch data once and reuse it across screen and file outputs.
 4. **Data Accuracy**: The query parameter `semiMajorAxis` was corrected to `semimajorAxis` to conform to the API's OpenAPI specification, ensuring semi-major axis values are correctly returned.
+5. **Direct Planet Temperature Retrieval**: Updated `UriPath.GetAllPlanetsWithMoonsQueryParameters` to request `avgTemp` directly in the `/rest/bodies` projection, populating `PlanetDto.AvgTemp` and `Planet.AvgTemp`.
 
 ## Git Workflow (Example)
 
