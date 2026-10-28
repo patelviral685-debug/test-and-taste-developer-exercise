@@ -12,42 +12,12 @@ namespace Test_Taste_Console_Application.Domain.Objects
         public float Gravity { get; set; }
 
         /// <summary>
-        /// Average surface temperature in Kelvin.
-        /// If the API provides a valid positive temperature, it is used directly.
-        /// When the API returns 0 or null (unmeasured in the open dataset),
-        /// it falls back to known astronomical reference temperatures where available.
-        /// If still unavailable, it remains null rather than 0 Kelvin (absolute zero).
+        /// Average surface temperature in Kelvin from the API.
+        /// If the API provides a valid positive temperature, it is stored directly.
+        /// When the API returns 0 or null (unmeasured in the open dataset), it is null,
+        /// and Planet.cs calculates the moon's radiative equilibrium temperature.
         /// </summary>
         public float? AvgTemp { get; set; }
-
-        // Standard scientific reference surface temperatures (in Kelvin) for major moons
-        // used when the public API returns 0 (unrecorded in their database)
-        private static readonly Dictionary<string, float> KnownMoonTemperatures = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
-        {
-            { "lune", 250f },
-            { "moon", 250f },
-            { "phobos", 233f },
-            { "deimos", 233f },
-            { "io", 130f },
-            { "europe", 102f },
-            { "ganymede", 110f },
-            { "callisto", 134f },
-            { "mimas", 64f },
-            { "encelade", 75f },
-            { "tethys", 86f },
-            { "dione", 87f },
-            { "rhea", 73f },
-            { "titan", 94f },
-            { "iapet", 130f },
-            { "ariel", 60f },
-            { "umbriel", 75f },
-            { "titania", 60f },
-            { "oberon", 61f },
-            { "miranda", 60f },
-            { "triton", 38f },
-            { "nereide", 50f },
-            { "protee", 50f }
-        };
 
         private static readonly Dictionary<string, float> KnownMoonGravities = new Dictionary<string, float>(StringComparer.OrdinalIgnoreCase)
         {
@@ -93,11 +63,6 @@ namespace Test_Taste_Console_Application.Domain.Objects
             if (moonDto.AvgTemp.HasValue && moonDto.AvgTemp.Value > 0)
             {
                 AvgTemp = moonDto.AvgTemp.Value;
-            }
-            // If the API returns 0 or null, check if a scientific reference temperature exists
-            else if (!string.IsNullOrEmpty(Id) && KnownMoonTemperatures.TryGetValue(Id.ToLowerInvariant().Trim(), out var refTemp))
-            {
-                AvgTemp = refTemp;
             }
             else
             {
