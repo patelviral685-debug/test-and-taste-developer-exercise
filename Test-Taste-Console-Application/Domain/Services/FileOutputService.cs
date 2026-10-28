@@ -57,7 +57,7 @@ namespace Test_Taste_Console_Application.Domain.Services
                     sb.AppendLine($"{j},{planetName},{moonCount},{avgTemp}");
                 }
 
-                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+                File.WriteAllText(filePath, sb.ToString(), new UTF8Encoding(true));
                 Console.WriteLine($"{OutputString.FileCreated}{filePath}");
             }
             catch (Exception exception)
@@ -102,7 +102,7 @@ namespace Test_Taste_Console_Application.Domain.Services
                     }
                 }
 
-                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+                File.WriteAllText(filePath, sb.ToString(), new UTF8Encoding(true));
                 Console.WriteLine($"{OutputString.FileCreated}{filePath}");
             }
             catch (Exception exception)
@@ -135,7 +135,7 @@ namespace Test_Taste_Console_Application.Domain.Services
                     sb.AppendLine($"{j},{moonName},{massExponent},{massValue}");
                 }
 
-                File.WriteAllText(filePath, sb.ToString(), Encoding.UTF8);
+                File.WriteAllText(filePath, sb.ToString(), new UTF8Encoding(true));
                 Console.WriteLine($"{OutputString.FileCreated}{filePath}");
             }
             catch (Exception exception)

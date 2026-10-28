@@ -7,10 +7,12 @@ namespace Test_Taste_Console_Application.Constants
         public const string JsonType = "application/json";
 
         /// <summary>
-        /// Optional Bearer API key for api.le-systeme-solaire.net.
-        /// Can be provided via the SOLAR_SYSTEM_API_KEY environment variable
-        /// or set directly for authenticated API queries.
+        /// Bearer API key for api.le-systeme-solaire.net.
+        /// Can be overridden via the SOLAR_SYSTEM_API_KEY environment variable.
         /// </summary>
-        public static string ApiKey => Environment.GetEnvironmentVariable("SOLAR_SYSTEM_API_KEY");
+        public const string DefaultApiKey = "3ee6d3b5-9a79-435c-9769-ea5b39d255a8";
+
+        public static string ApiKey =>
+            Environment.GetEnvironmentVariable("SOLAR_SYSTEM_API_KEY") ?? DefaultApiKey;
     }
 }

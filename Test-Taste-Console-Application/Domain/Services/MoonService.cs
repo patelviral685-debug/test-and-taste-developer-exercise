@@ -17,6 +17,7 @@ namespace Test_Taste_Console_Application.Domain.Services
     public class MoonService : IMoonService
     {
         private readonly HttpClientService _httpClientService;
+        private IEnumerable<Moon> _cachedMoons;
 
         public MoonService(HttpClientService httpClientService)
         {
@@ -25,6 +26,11 @@ namespace Test_Taste_Console_Application.Domain.Services
 
         public IEnumerable<Moon> GetAllMoons()
         {
+            if (_cachedMoons != null)
+            {
+                return _cachedMoons;
+            }
+
             try
             {
                 var response = _httpClientService.Client
@@ -39,15 +45,15 @@ namespace Test_Taste_Console_Application.Domain.Services
                         Logger.Instance.Warn(
                             $"{LoggerMessage.GetRequestFailed}{response.StatusCode}. " +
                             "The Solar System OpenData API requires an API key (Bearer token). " +
-                            "Set the SOLAR_SYSTEM_API_KEY environment variable. Using sample moon dataset.");
+                            "Set the SOLAR_SYSTEM_API_KEY environment variable. Using reference moon dataset.");
                     }
                     else
                     {
                         Logger.Instance.Warn($"{LoggerMessage.GetRequestFailed}{response.StatusCode}");
                     }
 
-                    // Fallback to reference Solar System dataset
-                    return SolarSystemSampleData.GetSampleMoons();
+                    _cachedMoons = SolarSystemSampleData.GetSampleMoons();
+                    return _cachedMoons;
                 }
 
                 var content = response.Content.ReadAsStringAsync().Result;
@@ -57,7 +63,8 @@ namespace Test_Taste_Console_Application.Domain.Services
 
                 if (results == null || results.Bodies == null)
                 {
-                    return allMoons;
+                    _cachedMoons = allMoons;
+                    return _cachedMoons;
                 }
 
                 foreach (MoonDto moonDto in results.Bodies)
@@ -65,12 +72,14 @@ namespace Test_Taste_Console_Application.Domain.Services
                     allMoons.Add(new Moon(moonDto));
                 }
 
-                return allMoons;
+                _cachedMoons = allMoons;
+                return _cachedMoons;
             }
             catch (Exception ex)
             {
-                Logger.Instance.Error($"Error querying moons from API: {ex.Message}. Falling back to sample dataset.");
-                return SolarSystemSampleData.GetSampleMoons();
+                Logger.Instance.Error($"Error querying moons from API: {ex.Message}. Falling back to reference dataset.");
+                _cachedMoons = SolarSystemSampleData.GetSampleMoons();
+                return _cachedMoons;
             }
         }
     }
