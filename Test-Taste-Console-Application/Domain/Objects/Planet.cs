@@ -3,15 +3,12 @@ using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Linq;
 using Test_Taste_Console_Application.Domain.DataTransferObjects;
+using Test_Taste_Console_Application.Utilities;
 
 namespace Test_Taste_Console_Application.Domain.Objects
 {
     public class Planet
     {
-        private const double SolarConstantWPerM2 = 1361.0;
-        private const double KilometersPerAu = 149597870.7;
-        private const double StefanBoltzmannWPerM2K4 = 5.670374419e-8;
-
         public string Id { get; set; }
         public float SemiMajorAxis { get; set; }
 
@@ -79,11 +76,10 @@ namespace Test_Taste_Console_Application.Domain.Objects
 
         /// <summary>
         /// Method that calculates and returns the average temperature of this planet's moons (in Kelvin).
-        /// As requested in the exercise and specified in moon-temperature-logic-Planet-cs.md:
         /// 1. If moons possess recorded positive temperatures from the API, their mean is calculated.
         /// 2. If moon temperature is unrecorded (0/null in API), calculates the radiative equilibrium
         ///    temperature using this planet's SemiMajorAxis (distance from Sun in km) and the moon's
-        ///    Bond albedo and thermal emissivity.
+        ///    Bond albedo and thermal emissivity (via MoonTemperatureCalculator).
         /// 3. If orbital distance is unavailable, gracefully falls back to the host planet's API average temperature.
         /// </summary>
         public float? GetAverageMoonTemperature()
@@ -102,7 +98,7 @@ namespace Test_Taste_Console_Application.Domain.Objects
                 {
                     temperatures.Add(moon.AvgTemp.Value);
                 }
-                // 2. Otherwise calculate radiative equilibrium temperature using the formula from moon-temperature-logic-Planet-cs.md
+                // 2. Otherwise calculate radiative equilibrium temperature using the formula from moon-average-temperature-implementation.md
                 else if (SemiMajorAxis > 0)
                 {
                     double albedo = 0.30; // default planetary satellite albedo
@@ -134,61 +130,33 @@ namespace Test_Taste_Console_Application.Domain.Objects
         /// <summary>
         /// Calculates a moon's radiative equilibrium temperature in Celsius using the parent planet's orbital distance
         /// from the Sun (in kilometers) and the moon's assumed Bond albedo and thermal emissivity.
-        /// Implements the formula specified in moon-temperature-logic-Planet-cs.md.
+        /// Delegates to MoonTemperatureCalculator.
         /// </summary>
         public static double CalculateMoonEquilibriumTemperatureCelsius(
             double planetDistanceFromSunKm,
-            double moonBondAlbedo,
-            double moonThermalEmissivity = 1.0)
+            double moonBondAlbedo = 0.12,
+            double moonThermalEmissivity = 0.90)
         {
-            double temperatureKelvin = CalculateMoonEquilibriumTemperatureKelvin(
+            return MoonTemperatureCalculator.CalculateEquilibriumTemperatureCelsius(
                 planetDistanceFromSunKm,
                 moonBondAlbedo,
                 moonThermalEmissivity);
-
-            return temperatureKelvin - 273.15;
         }
 
         /// <summary>
         /// Calculates a moon's radiative equilibrium temperature in Kelvin using the parent planet's orbital distance
         /// from the Sun (in kilometers) and the moon's assumed Bond albedo and thermal emissivity.
-        /// Implements the formula specified in moon-temperature-logic-Planet-cs.md.
+        /// Delegates to MoonTemperatureCalculator.
         /// </summary>
         public static double CalculateMoonEquilibriumTemperatureKelvin(
             double planetDistanceFromSunKm,
-            double moonBondAlbedo,
-            double moonThermalEmissivity = 1.0)
+            double moonBondAlbedo = 0.12,
+            double moonThermalEmissivity = 0.90)
         {
-            if (!double.IsFinite(planetDistanceFromSunKm) || planetDistanceFromSunKm <= 0)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(planetDistanceFromSunKm),
-                    "Distance from the Sun must be a finite positive value.");
-            }
-
-            if (!double.IsFinite(moonBondAlbedo) || moonBondAlbedo < 0 || moonBondAlbedo > 1)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(moonBondAlbedo),
-                    "Bond albedo must be between 0 and 1.");
-            }
-
-            if (!double.IsFinite(moonThermalEmissivity) || moonThermalEmissivity <= 0 || moonThermalEmissivity > 1)
-            {
-                throw new ArgumentOutOfRangeException(
-                    nameof(moonThermalEmissivity),
-                    "Thermal emissivity must be greater than 0 and at most 1.");
-            }
-
-            double distanceAu = planetDistanceFromSunKm / KilometersPerAu;
-            double solarRadiationWPerM2 = SolarConstantWPerM2 / Math.Pow(distanceAu, 2);
-
-            double temperatureKelvin = Math.Pow(
-                (solarRadiationWPerM2 * (1.0 - moonBondAlbedo)) /
-                (4.0 * moonThermalEmissivity * StefanBoltzmannWPerM2K4),
-                0.25);
-
-            return temperatureKelvin;
+            return MoonTemperatureCalculator.CalculateEquilibriumTemperatureKelvin(
+                planetDistanceFromSunKm,
+                moonBondAlbedo,
+                moonThermalEmissivity);
         }
 
         public Planet(PlanetDto planetDto)
