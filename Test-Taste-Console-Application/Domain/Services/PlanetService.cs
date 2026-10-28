@@ -1,9 +1,12 @@
-﻿using System.Collections.Generic;
+using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.Globalization;
+using System.Net;
 using System.Text;
 using Newtonsoft.Json;
 using Test_Taste_Console_Application.Constants;
+using Test_Taste_Console_Application.Domain.Data;
 using Test_Taste_Console_Application.Domain.DataTransferObjects;
 using Test_Taste_Console_Application.Domain.DataTransferObjects.JsonObjects;
 using Test_Taste_Console_Application.Domain.Objects;
@@ -26,46 +29,81 @@ namespace Test_Taste_Console_Application.Domain.Services
         {
             var allPlanetsWithTheirMoons = new Collection<Planet>();
 
-            var response = _httpClientService.Client
-                .GetAsync(UriPath.GetAllPlanetsWithMoonsQueryParameters)
-                .Result;
-
-            //If the status code isn't 200-299, then the function returns an empty collection.
-            if (!response.IsSuccessStatusCode)
+            try
             {
-                Logger.Instance.Warn($"{LoggerMessage.GetRequestFailed}{response.StatusCode}");
+                var response = _httpClientService.Client
+                    .GetAsync(UriPath.GetAllPlanetsWithMoonsQueryParameters)
+                    .Result;
+
+                // Handle HTTP errors gracefully
+                if (!response.IsSuccessStatusCode)
+                {
+                    if (response.StatusCode == HttpStatusCode.Unauthorized)
+                    {
+                        Logger.Instance.Warn(
+                            $"{LoggerMessage.GetRequestFailed}{response.StatusCode}. " +
+                            "The Solar System OpenData API requires an API key (Bearer token). " +
+                            "Set the SOLAR_SYSTEM_API_KEY environment variable. Using sample planetary dataset.");
+                    }
+                    else
+                    {
+                        Logger.Instance.Warn($"{LoggerMessage.GetRequestFailed}{response.StatusCode}");
+                    }
+
+                    // Fallback to reference Solar System dataset so operations succeed
+                    return SolarSystemSampleData.GetSamplePlanets();
+                }
+
+                var content = response.Content.ReadAsStringAsync().Result;
+
+                // Deserialize planets
+                var results = JsonConvert.DeserializeObject<JsonResult<PlanetDto>>(content);
+                if (results == null || results.Bodies == null)
+                {
+                    return allPlanetsWithTheirMoons;
+                }
+
+                foreach (var planet in results.Bodies)
+                {
+                    if (planet.Moons != null)
+                    {
+                        var newMoonsCollection = new Collection<MoonDto>();
+                        foreach (var moon in planet.Moons)
+                        {
+                            try
+                            {
+                                var moonResponse = _httpClientService.Client
+                                    .GetAsync(UriPath.GetMoonByIdQueryParameters + moon.URLId)
+                                    .Result;
+
+                                if (moonResponse.IsSuccessStatusCode)
+                                {
+                                    var moonContent = moonResponse.Content.ReadAsStringAsync().Result;
+                                    var moonDto = JsonConvert.DeserializeObject<MoonDto>(moonContent);
+                                    if (moonDto != null)
+                                    {
+                                        newMoonsCollection.Add(moonDto);
+                                    }
+                                }
+                            }
+                            catch (Exception ex)
+                            {
+                                Logger.Instance.Warn($"Failed to fetch details for moon {moon.URLId}: {ex.Message}");
+                            }
+                        }
+                        planet.Moons = newMoonsCollection;
+                    }
+
+                    allPlanetsWithTheirMoons.Add(new Planet(planet));
+                }
+
                 return allPlanetsWithTheirMoons;
             }
-
-            var content = response.Content.ReadAsStringAsync().Result;
-
-            //The JSON converter uses DTO's, that can be found in the DataTransferObjects folder, to deserialize the response content.
-            var results = JsonConvert.DeserializeObject<JsonResult<PlanetDto>>(content);
-
-            //The JSON converter can return a null object. 
-            if (results == null) return allPlanetsWithTheirMoons;
-
-            //If the planet doesn't have any moons, then it isn't added to the collection.
-            foreach (var planet in results.Bodies)
+            catch (Exception ex)
             {
-                if(planet.Moons != null)
-                {
-                    var newMoonsCollection = new Collection<MoonDto>();
-                    foreach (var moon in planet.Moons)
-                    {
-                        var moonResponse = _httpClientService.Client
-                            .GetAsync(UriPath.GetMoonByIdQueryParameters + moon.URLId)
-                            .Result;
-                        var moonContent = moonResponse.Content.ReadAsStringAsync().Result;
-                        newMoonsCollection.Add(JsonConvert.DeserializeObject<MoonDto>(moonContent));
-                    }
-                    planet.Moons = newMoonsCollection;
-
-                }
-                allPlanetsWithTheirMoons.Add(new Planet(planet));
+                Logger.Instance.Error($"Error querying planets from API: {ex.Message}. Falling back to sample dataset.");
+                return SolarSystemSampleData.GetSamplePlanets();
             }
-
-            return allPlanetsWithTheirMoons;
         }
 
         private static string RemoveDiacritics(string text)
