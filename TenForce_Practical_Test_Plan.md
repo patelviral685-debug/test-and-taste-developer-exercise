@@ -178,7 +178,7 @@ If the starter project already has a Git repository or commits, inspect its stat
 - [x] Comments explain important decisions.
 - [x] Regular commits exist on `TenForce-VRP`.
 - [x] Domain-model and API-interface changes are explained.
-- [ ] The working branch is merged into `main`.
+- [x] The working branch is merged into `main`.
 - [x] A public repository link is ready to share.
 
 ## Assessment Note
