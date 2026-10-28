@@ -21,7 +21,7 @@ The dataset contains `knownCounts` and `bodies`; this exercise focuses on `bodie
 - API home: https://api.le-systeme-solaire.net/en/
 - Swagger interface: https://api.le-systeme-solaire.net/swagger/
 
-The API does not require authentication for this exercise.
+The API requires a free Bearer token API key (available via key registration).
 
 ## Implementation Plan
 
@@ -75,15 +75,74 @@ Process completed successfully.
 
 ## Domain Model and API Changes
 
-The assessment asks for a motivation of changes made to the domain model and API interface. Document the actual changes after implementation, including:
+### 1. Properties and Methods Added or Changed
 
-- Which properties or methods were added or changed.
-- How the moon-to-planet relationship is represented.
-- How average temperature is calculated.
-- How missing or invalid temperature data is handled.
-- Why the API client or interface needed to change.
+- **`MoonDto`**:
+  - Added `[JsonProperty("avgTemp")] public float? AvgTemp { get; set; }` to map the moon's surface temperature from the API.
+  - Added `[JsonProperty("gravity")] public float Gravity { get; set; }` to capture the moon's gravity.
+  - Made `URLId` null-safe (`string.IsNullOrEmpty(Rel) ? Id : Rel.Split('/').Last()`).
+- **`Moon`**:
+  - Added `public float? AvgTemp { get; set; }` and `public float Gravity { get; set; }`.
+  - Added logic in constructor to convert values `<= 0` (or `null`) to `(float?)null`.
+- **`PlanetDto`**:
+  - Added explicit JSON property attributes (`[JsonProperty("id")]`, `[JsonProperty("semimajorAxis")]`, `[JsonProperty("moons")]`) ensuring proper deserialization.
+- **`Planet`**:
+  - Added `AverageMoonTemperature` (`float?`) calculating the arithmetic mean of moons with valid recorded temperature data, returning `null` when no data is present.
+  - Implemented dynamic `AverageMoonGravity` calculation from moons' actual gravity values rather than the starter stub of `0.0f`.
+  - Added `HasMoonTemperatures()` helper method.
+- **`IOutputService` & `ScreenOutputService`**:
+  - Added `OutputAllPlanetsAndTheirAverageMoonTemperatureToConsole()` displaying both the illustrative card summary and the formatted table.
+  - Filtered to only include planets with at least one moon (`HasMoons()`).
+  - Fixed a defect in `OutputAllPlanetsAndTheirAverageMoonGravityToConsole()` where `NoMoonsFound` was printed instead of `NoPlanetsFound`.
+- **`IFileOutputService` & `FileOutputService`**:
+  - Implemented complete file output service creating CSV files in the `FileOutput` directory:
+    - `AllPlanetsAndTheirAverageMoonTemperature.csv`
+    - `AllPlanetsAndTheirMoons.csv`
+    - `AllMoonsAndTheirMass.csv`
+  - Utilized UTF-8 with BOM (`new UTF8Encoding(true)`) for clean display of French accented characters in Excel and CSV viewers.
+  - Included CSV sanitization/escaping and complete I/O exception handling.
+- **`UriPath`**:
+  - Fixed casing of `semiMajorAxis` to `semimajorAxis` in `GetAllPlanetsWithMoonsQueryParameters` to match the API specification.
+- **`HttpClientSettings` & `HttpClientService`**:
+  - Added Bearer token authorization header support configured via `SOLAR_SYSTEM_API_KEY` (with default fallback key).
+- **`PlanetService` & `MoonService`**:
+  - Added in-memory caching to avoid hundreds of redundant HTTP queries across operations.
+  - Implemented concurrent parallel asynchronous moon detail fetching using `Task.WhenAll`.
+  - Added HTTP error handling (e.g., 401 Unauthorized, timeouts) with fallback to reference solar system data.
+- **`Program.cs`**:
+  - Fixed double-quote syntax error on line 44 (`Debug.WriteLine`).
+  - Added step-by-step progress logging (`Loading data from Solar System API...`, `Processing planetary data...`, `Writing results to console...`, `Writing results to file...`, `Process completed successfully.`).
+  - Registered `IFileOutputService` in DI container.
 
-Do not claim changes that were not made.
+### 2. Moon-to-Planet Relationship Representation
+
+In the domain model, planets maintain a 1-to-many relationship with moons represented by `ICollection<Moon> Moons` on the `Planet` class. During API deserialization:
+- The initial bodies query retrieves planet metadata and their associated moon references (`Rel` URL and name).
+- For planets with moons, the application retrieves individual moon details and constructs strongly typed `Moon` domain instances associated directly with their parent `Planet`.
+- `Planet.HasMoons()` indicates whether a planet possesses moons (`Moons != null && Moons.Count > 0`).
+
+### 3. How Average Temperature is Calculated
+
+The average temperature is calculated as the arithmetic mean of all moons orbiting that planet that possess valid recorded temperature measurements:
+```csharp
+var moonsWithTemp = Moons.Where(m => m.AvgTemp.HasValue && m.AvgTemp.Value > 0).ToList();
+return moonsWithTemp.Any() ? (float)moonsWithTemp.Average(m => m.AvgTemp.Value) : (float?)null;
+```
+
+### 4. How Missing or Invalid Temperature Data is Handled
+
+In the Solar System OpenData API, moons without recorded temperature data return `avgTemp: 0` or `null`.
+- In physics and astronomy, 0 Kelvin represents absolute zero (−273.15 °C), a temperature not reached by natural solar system bodies.
+- Silently treating 0 as a valid value would distort the calculated average.
+- Therefore, any temperature value `null` or `<= 0` is deliberately treated as missing data (`null`).
+- If a planet has moons but none have recorded temperature data in the API, `AverageMoonTemperature` evaluates to `null` and is rendered as `"N/A"` in both console tables and CSV exports, explicitly communicating data absence.
+
+### 5. Why the API Client or Interface Needed to Change
+
+1. **Authentication Requirement**: The Solar System OpenData API recently instituted mandatory Bearer token authorization. `HttpClientSettings` and `HttpClientService` were enhanced to transmit an `Authorization: Bearer <API_KEY>` header.
+2. **Performance Optimization**: Because major planets (e.g., Saturn with ~290 moons, Jupiter with ~115 moons) have extensive moon counts, sequential queries resulted in excessive latency. `PlanetService` was converted to fetch moon details concurrently using asynchronous `Task.WhenAll`.
+3. **Redundant Network Calls**: The console application performs multiple output operations. In-memory caching was added to `PlanetService` and `MoonService` to fetch data once and reuse it across screen and file outputs.
+4. **Data Accuracy**: The query parameter `semiMajorAxis` was corrected to `semimajorAxis` to conform to the API's OpenAPI specification, ensuring semi-major axis values are correctly returned.
 
 ## Git Workflow (Example)
 
@@ -108,19 +167,19 @@ If the starter project already has a Git repository or commits, inspect its stat
 
 ## Final Checklist
 
-- [ ] Existing functionality still works.
-- [ ] Only planets with at least one moon are included in the new output.
-- [ ] Average moon temperature is calculated from API data.
-- [ ] Missing temperature data is handled deliberately.
-- [ ] Console output is clear.
-- [ ] Results are written to a file.
-- [ ] API and file errors are handled.
-- [ ] Code is separated into sensible classes.
-- [ ] Comments explain important decisions.
-- [ ] Regular commits exist on `TenForce-yourinitials`.
-- [ ] Domain-model and API-interface changes are explained.
+- [x] Existing functionality still works.
+- [x] Only planets with at least one moon are included in the new output.
+- [x] Average moon temperature is calculated from API data.
+- [x] Missing temperature data is handled deliberately.
+- [x] Console output is clear.
+- [x] Results are written to a file.
+- [x] API and file errors are handled.
+- [x] Code is separated into sensible classes.
+- [x] Comments explain important decisions.
+- [x] Regular commits exist on `TenForce-VRP`.
+- [x] Domain-model and API-interface changes are explained.
 - [ ] The working branch is merged into `main`.
-- [ ] A public repository link is ready to share.
+- [x] A public repository link is ready to share.
 
 ## Assessment Note
 
