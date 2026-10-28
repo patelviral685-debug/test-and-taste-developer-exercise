@@ -1,17 +1,16 @@
-﻿using System.Linq;
-using System.Text.Json.Serialization;
+using System.Linq;
 using Newtonsoft.Json;
 using Test_Taste_Console_Application.Domain.DataTransferObjects.JsonObjects;
 
 namespace Test_Taste_Console_Application.Domain.DataTransferObjects
 {
-    //The converter is needed for this DTO. Because of the converter, all the properties need to get the JsonProperty annotation. 
+    // The converter is needed for this DTO. Because of the converter, all the properties need to get the JsonProperty annotation.
     [Newtonsoft.Json.JsonConverter(typeof(JsonPathConverter))]
     public class MoonDto
     {
         [JsonProperty("id")] public string Id { get; set; }
 
-        //The property moon is used to set the Id property. 
+        // The property moon is used to set the Id property.
         [JsonProperty("moon")]
         public string Moon
         {
@@ -19,12 +18,16 @@ namespace Test_Taste_Console_Application.Domain.DataTransferObjects
             set => Id = value;
         }
 
-        //The path of the specific moon
+        // The path of the specific moon
         [JsonProperty("rel")] public string Rel { get; set; }
-        public string URLId { get => Rel.Split('/').Last(); }
+        public string URLId => string.IsNullOrEmpty(Rel) ? Id : Rel.Split('/').Last();
 
-        //The path to the nested property is created by using a dot. 
+        // The path to the nested property is created by using a dot.
         [JsonProperty("mass.massValue")] public float MassValue { get; set; }
         [JsonProperty("mass.massExponent")] public float MassExponent { get; set; }
+
+        // Moon's gravity and average temperature
+        [JsonProperty("gravity")] public float Gravity { get; set; }
+        [JsonProperty("avgTemp")] public float? AvgTemp { get; set; }
     }
 }
