@@ -56,7 +56,7 @@ The objective is to extend the existing application by adding a new feature that
         }
     }
     ```
-  - If a planet has moons but none possess recorded temperature readings, it returns `null` (displayed as `"N/A"`), explicitly communicating missing data rather than misleading the user.
+- **Radiative Equilibrium Temperature Calculation**: Implemented `CalculateMoonEquilibriumTemperatureCelsius` and `CalculateMoonEquilibriumTemperatureKelvin` on `Planet.cs` using the solar radiative equilibrium formula from `moon-temperature-logic-Planet-cs.md`. When moon temperatures are unrecorded in the API, this calculates each moon's equilibrium temperature from the parent planet's orbital distance (`SemiMajorAxis`), Bond albedo, and thermal emissivity.
 - **Dynamic Average Moon Gravity (`AverageMoonGravity`)**:
   - Computed as the arithmetic mean of all moons with `Gravity > 0`, restoring functional integrity to the existing starter feature.
 - **Filtering Planets with Moons (`HasMoons()`)**:
