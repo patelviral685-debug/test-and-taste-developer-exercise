@@ -135,7 +135,7 @@ In the Solar System OpenData API, moons without recorded temperature data return
 - In physics and astronomy, 0 Kelvin represents absolute zero (âˆ’273.15 Â°C), a temperature not reached by natural solar system bodies.
 - Silently treating 0 as a valid value would distort the calculated average.
 - Therefore, any temperature value `null` or `<= 0` is deliberately treated as missing data (`null`).
-- The application implements a tiered fallback: 1) API positive moon temperature, 2) astronomical reference temperature for major moons, 3) host planet API AvgTemp as orbital equilibrium fallback, 4) null (rendered as 'N/A').
+- The application implements dynamic calculation: 1) API positive moon temperature, 2) dynamic radiative equilibrium temperature calculated via Planet.CalculateMoonEquilibriumTemperatureKelvin using the parent planet's orbital distance (SemiMajorAxis) and moon Bond albedo, 3) host planet API AvgTemp as orbital equilibrium fallback, 4) null (rendered as 'N/A').
 
 ### 5. Why the API Client or Interface Needed to Change
 
