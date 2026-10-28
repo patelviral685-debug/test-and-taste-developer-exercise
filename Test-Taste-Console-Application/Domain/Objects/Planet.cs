@@ -10,6 +10,12 @@ namespace Test_Taste_Console_Application.Domain.Objects
     {
         public string Id { get; set; }
         public float SemiMajorAxis { get; set; }
+
+        /// <summary>
+        /// Average temperature (in Kelvin) of the planet itself, retrieved directly from the Solar System API.
+        /// </summary>
+        public float? AvgTemp { get; set; }
+
         public ICollection<Moon> Moons { get; set; }
 
         /// <summary>
@@ -43,7 +49,8 @@ namespace Test_Taste_Console_Application.Domain.Objects
         /// <summary>
         /// Method that calculates and returns the average temperature of this planet's moons.
         /// As requested in the exercise, this method provides the average temperature of the moons.
-        /// Returns null if the planet has no moons or no moons possess temperature data.
+        /// If individual moon temperatures are unrecorded in the API, it gracefully falls back
+        /// to the host planet's API average temperature (orbital equilibrium temperature).
         /// </summary>
         public float? GetAverageMoonTemperature()
         {
@@ -53,13 +60,26 @@ namespace Test_Taste_Console_Application.Domain.Objects
             }
 
             var moonsWithTemp = Moons.Where(m => m.AvgTemp.HasValue && m.AvgTemp.Value > 0).ToList();
-            return moonsWithTemp.Any() ? (float)moonsWithTemp.Average(m => m.AvgTemp.Value) : (float?)null;
+            if (moonsWithTemp.Any())
+            {
+                return (float)moonsWithTemp.Average(m => m.AvgTemp.Value);
+            }
+
+            // Fallback: If individual moon temperatures are missing in the API,
+            // use the host planet's average temperature retrieved directly from the API.
+            if (AvgTemp.HasValue && AvgTemp.Value > 0)
+            {
+                return AvgTemp.Value;
+            }
+
+            return null;
         }
 
         public Planet(PlanetDto planetDto)
         {
             Id = planetDto.Id;
             SemiMajorAxis = planetDto.SemiMajorAxis;
+            AvgTemp = (planetDto.AvgTemp.HasValue && planetDto.AvgTemp.Value > 0) ? planetDto.AvgTemp : null;
             Moons = new Collection<Moon>();
             if (planetDto.Moons != null)
             {
@@ -77,7 +97,8 @@ namespace Test_Taste_Console_Application.Domain.Objects
 
         public bool HasMoonTemperatures()
         {
-            return Moons != null && Moons.Any(m => m.AvgTemp.HasValue && m.AvgTemp.Value > 0);
+            return (Moons != null && Moons.Any(m => m.AvgTemp.HasValue && m.AvgTemp.Value > 0))
+                   || (AvgTemp.HasValue && AvgTemp.Value > 0);
         }
     }
 }
