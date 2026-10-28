@@ -9,7 +9,7 @@ namespace Test_Taste_Console_Application.Constants
             BodiesUri + "?data=id,semimajorAxis,avgTemp,moons,moon,rel&filter[]=isPlanet,neq,false";
 
         public const string GetAllMoonsWithMassQueryParameters = BodiesUri +
-                                               "?data=id,mass,massValue,massExponent&filter[]=aroundPlanet,gt,null";
+                                               "?data=id,mass,massValue,massExponent,gravity,avgTemp&filter[]=aroundPlanet,gt,null";
 
         public const string GetMoonByIdQueryParameters = BodiesUri + "/";
     }
