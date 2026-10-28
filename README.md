@@ -117,52 +117,6 @@ The objective is to extend the existing application by adding a new feature that
 
 ---
 
-## Project Structure
-
-```text
-Test-Taste-Console-Application/
-â”œâ”€â”€ Constants/
-â”‚   â”œâ”€â”€ ConfigurationFileName.cs
-â”‚   â”œâ”€â”€ ExceptionMessage.cs
-â”‚   â”œâ”€â”€ HttpClientSettings.cs         # API authentication settings
-â”‚   â”œâ”€â”€ LoggerMessage.cs
-â”‚   â”œâ”€â”€ OutputString.cs               # UI labels & string constants
-â”‚   â”œâ”€â”€ PathName.cs                   # File paths & CSV names
-â”‚   â””â”€â”€ UriPath.cs                    # API endpoint URIs
-â”œâ”€â”€ Domain/
-â”‚   â”œâ”€â”€ Data/
-â”‚   â”‚   â””â”€â”€ SolarSystemSampleData.cs  # Offline/resilient reference data
-â”‚   â”œâ”€â”€ DataTransferObjects/
-â”‚   â”‚   â”œâ”€â”€ JsonObjects/              # JSON converters & wrappers
-â”‚   â”‚   â”œâ”€â”€ MoonDto.cs                # Moon DTO with temp & gravity
-â”‚   â”‚   â””â”€â”€ PlanetDto.cs              # Planet DTO
-â”‚   â”œâ”€â”€ Objects/
-â”‚   â”‚   â”œâ”€â”€ Moon.cs                   # Domain Moon entity
-â”‚   â”‚   â””â”€â”€ Planet.cs                 # Domain Planet entity with averages
-â”‚   â””â”€â”€ Services/
-â”‚       â”œâ”€â”€ Interfaces/
-â”‚       â”‚   â”œâ”€â”€ IFileOutputService.cs # File export contract
-â”‚       â”‚   â”œâ”€â”€ IMoonService.cs
-â”‚       â”‚   â”œâ”€â”€ IOutputService.cs     # Console display contract
-â”‚       â”‚   â””â”€â”€ IPlanetService.cs
-â”‚       â”œâ”€â”€ FileOutputService.cs      # CSV file generation implementation
-â”‚       â”œâ”€â”€ HttpClientService.cs      # Configured HTTP client with auth
-â”‚       â”œâ”€â”€ MoonService.cs            # Moon querying with caching
-â”‚       â”œâ”€â”€ PlanetService.cs          # Planet querying with async batching
-â”‚       â””â”€â”€ ScreenOutputService.cs    # Formatted console outputs
-â”œâ”€â”€ Utilities/
-â”‚   â”œâ”€â”€ ConsoleWriter.cs              # ASCII table formatter
-â”‚   â”œâ”€â”€ CultureInfoUtility.cs
-â”‚   â””â”€â”€ Logger.cs                     # log4net logger
-â”œâ”€â”€ FileOutput/                       # Generated CSV files (gitignored)
-â”‚   â”œâ”€â”€ AllMoonsAndTheirMass.csv
-â”‚   â”œâ”€â”€ AllPlanetsAndTheirAverageMoonTemperature.csv
-â”‚   â””â”€â”€ AllPlanetsAndTheirMoons.csv
-â”œâ”€â”€ Program.cs                        # Application entry point & workflow
-â””â”€â”€ Test-Taste-Console-Application.csproj
-```
-
----
 
 ## How to Build and Run
 
